@@ -15,6 +15,9 @@ import (
 
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	var result map[string]interface{}
+	var name string
+	var email string
+	var jwtToken string
 
 	code := r.URL.Query().Get("code")
 
@@ -22,7 +25,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(res.StatusCode)
 		return
 	}
 
@@ -30,13 +33,15 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	res.Body.Close()
 
-	jwtToken := result["access_token"].(string)
+	if t, ok := result["access_token"].(string); ok {
+		jwtToken = t
+	}
 
 	res, err = getUserInformation(jwtToken)
 
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(res.StatusCode)
 		return
 	}
 
@@ -52,9 +57,17 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if e, ok := result["email"].(string); ok {
+		email = e
+	}
+
+	if n, ok := result["name"].(string); ok {
+		name = n
+	}
+
 	err = tpl.Execute(w, map[string]interface{}{
-		"name":  result["name"].(string),
-		"email": result["email"].(string),
+		"name":  name,
+		"email": email,
 	})
 
 	if err != nil {
@@ -72,6 +85,7 @@ func getAccessToken(code string) (*http.Response, error) {
 		"client_id":     os.Getenv("CLIENT_ID"),
 		"client_secret": os.Getenv("CLIENT_SECRET"),
 		"code":          code,
+		"scope":         os.Getenv("SCOPE"),
 	})
 
 	if err != nil {
@@ -87,6 +101,7 @@ func getAccessToken(code string) (*http.Response, error) {
 	}
 
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	return client.Do(req)
 }
@@ -100,7 +115,8 @@ func getUserInformation(token string) (*http.Response, error) {
 		return nil, err
 	}
 
-	req.URL.Query().Set("access_token", token)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	return client.Do(req)
 }
