@@ -21,4 +21,5 @@ func handlerWrapper(h http.Handler) httprouter.Handle {
 
 func setRoutes(r *httprouter.Router) {
 	r.GET("/", handlerWrapper(http.HandlerFunc(homeHandler)))
+	r.GET("/callback", handlerWrapper(http.HandlerFunc(callbackHandler)))
 }
