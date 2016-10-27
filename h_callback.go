@@ -30,7 +30,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	res.Body.Close()
 
-	jwtToken := result["token"].(string)
+	jwtToken := result["access_token"].(string)
 
 	res, err = getUserInformation(jwtToken)
 
